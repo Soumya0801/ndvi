@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NDVI Map Viewer</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/ol@7.3.0/ol.css"
+  />
+  <style>
+    #map {
+      width: 100%;
+      height: 500px;
+    }
+    #inputs {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>NDVI Viewer</h2>
+<div id="inputs">
+  Latitude: <input type="number" id="lat" value="20.5937" step="0.0001" />
+  Longitude: <input type="number" id="lon" value="78.9629" step="0.0001" />
+  <button id="goBtn">Show NDVI</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
+<script>
+  const latInput = document.getElementById('lat');
+  const lonInput = document.getElementById('lon');
+  const goBtn = document.getElementById('goBtn');
+
+  // WMS NDVI Layer from NASA/ESA or Sentinel (example WMS endpoint)
+  const ndviWMSUrl = 'https://vedas.sac.gov.in/drought_monitoring_wms/wms?'; 
+  // Replace 'your_instance_id' with your actual instance or use another public WMS source
+
+  // Map view starting location (EPSG:3857 projection)
+  let map = new ol.Map({
+    target: 'map',
+    layers: [
+      new ol.layer.Tile({
+        source: new ol.source.OSM()
+      })
+    ],
+    view: new ol.View({
+      center: ol.proj.fromLonLat([78.9629, 20.5937]),
+      zoom: 5
+    })
+  });
+
+  let ndviLayer = null;
+
+  function showNDVI(lat, lon) {
+    // Remove old NDVI layer if any
+    if (ndviLayer) {
+      map.removeLayer(ndviLayer);
+    }
+
+    // Add NDVI WMS layer
+    ndviLayer = new ol.layer.Image({
+      source: new ol.source.ImageWMS({
+        url: ndviWMSUrl,
+        params: {
+          'LAYERS': 'NDVI',  // depends on your WMS server layers name
+          'FORMAT': 'image/png',
+          'TRANSPARENT': true,
+        },
+        ratio: 1,
+        serverType: 'geoserver',  // or other server type if known
+      })
+    });
+
+    map.addLayer(ndviLayer);
+
+    // Center map on new coordinates
+    let coord = ol.proj.fromLonLat([lon, lat]);
+    map.getView().animate({ center: coord, zoom: 10 });
+  }
+
+  goBtn.onclick = () => {
+    const lat = parseFloat(latInput.value);
+    const lon = parseFloat(lonInput.value);
+    if (isNaN(lat) || isNaN(lon)) {
+      alert('Please enter valid latitude and longitude');
+      return;
+    }
+    showNDVI(lat, lon);
+  };
+
+  // Show initial
+  showNDVI(parseFloat(latInput.value), parseFloat(lonInput.value));
+</script>
+</body>
+</html>
